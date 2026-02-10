@@ -103,7 +103,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, projectId })
                 <div className="px-8 pt-8 pb-4 flex justify-between items-start relative z-10">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900">Upload Data</h2>
-                        <p className="text-slate-500 text-sm mt-1">Import CSV to start a new scan</p>
+                        <p className="text-slate-500 text-sm mt-1">File supported: .csv, etc</p>
                     </div>
                     <button
                         onClick={onClose}

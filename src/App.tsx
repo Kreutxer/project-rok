@@ -4,18 +4,26 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import DatasetViewer from './components/DatasetViewer';
+import ComparisonViewer from './components/ComparisonViewer';
 import { supabase } from './lib/supabase';
 import type { Project, Dataset } from './types/database';
 
 const App: React.FC = () => {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [activeDataset, setActiveDataset] = useState<Dataset | null>(null);
+  const [comparisonData, setComparisonData] = useState<{ init: Dataset; latest: Dataset } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchProjects();
   }, []);
+  // ... (keep fetchProjects logic, handled by startLine/endLine if contiguous, but here I'm replacing the top part and render logic. I need to be careful not to delete fetchProjects. I'll split this into 2 edits if needed, or use a larger range)
+
+  // Let's look at the range. 1-124 is the whole file.
+  // I will just replace the import and component state definition, and the render part.
+  // Actually, I can use multi_replace to be safe.
+
 
   const fetchProjects = async () => {
     try {
@@ -89,16 +97,23 @@ const App: React.FC = () => {
         activeProject={activeProject}
         setActiveProject={(project) => {
           setActiveProject(project);
-          setActiveDataset(null); // Reset view when project changes
+          setActiveDataset(null);
+          setComparisonData(null);
         }}
         projects={projects}
         onCreateProject={handleCreateProject}
         onDeleteProject={handleDeleteProject}
       />
       <main className="flex-1 flex flex-col min-w-0">
-        <Header />
+        <Header activeProject={activeProject} activeDataset={activeDataset} />
         <div className="flex-1 p-10 max-w-[1600px] h-[calc(100vh-80px)]">
-          {activeDataset ? (
+          {comparisonData ? (
+            <ComparisonViewer
+              initDataset={comparisonData.init}
+              latestDataset={comparisonData.latest}
+              onBack={() => setComparisonData(null)}
+            />
+          ) : activeDataset ? (
             <DatasetViewer
               dataset={activeDataset}
               onBack={() => setActiveDataset(null)}
@@ -108,6 +123,7 @@ const App: React.FC = () => {
               key={activeProject.id}
               activeProject={activeProject}
               onSelectDataset={setActiveDataset}
+              onCompareDatasets={(init, latest) => setComparisonData({ init, latest })}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-400">

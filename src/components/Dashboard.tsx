@@ -7,9 +7,10 @@ import type { Project, Dataset } from '../types/database';
 interface DashboardProps {
     activeProject: Project;
     onSelectDataset: (dataset: Dataset) => void;
+    onCompareDatasets: (init: Dataset, latest: Dataset) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset }) => {
+const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset, onCompareDatasets }) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [datasets, setDatasets] = useState<Dataset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -84,8 +85,40 @@ const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset })
         }
     };
 
+    // Identify Init and Latest Scans
+    // datasets are already sorted by created_at desc (newest first)
+    const latestScan = datasets.length > 0 ? datasets[0] : null;
+    const initScan = datasets.length > 0 ? datasets[datasets.length - 1] : null;
+    const canCompare = datasets.length >= 2 && latestScan && initScan && latestScan.id !== initScan.id;
+
     return (
         <>
+            {/* Features Section */}
+            <div className="mb-8">
+                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Features</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button
+                        className={`bg-white p-4 rounded-xl border border-slate-200 transition-all flex items-center gap-4 text-left group ${canCompare ? 'hover:border-indigo-400 hover:shadow-md cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
+                        onClick={() => {
+                            if (canCompare) {
+                                onCompareDatasets(initScan!, latestScan!);
+                            } else {
+                                toast.error('Need at least 2 scans to track progress');
+                            }
+                        }}
+                    >
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-transform ${canCompare ? 'bg-indigo-500 text-white shadow-indigo-500/30 group-hover:scale-110' : 'bg-slate-200 text-slate-400'}`}>
+                            <span className="material-symbols-outlined text-2xl">trophy</span>
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-slate-800">DKP Tracker</h3>
+                            <p className="text-xs text-slate-500 font-medium mt-0.5">Death & Kill Points Tracker</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Scans</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {isLoading ? (
                     // Skeleton Loaders
@@ -101,12 +134,27 @@ const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset })
                 ) : (
                     // Dataset Cards
                     datasets.map((dataset) => {
+                        const isLatest = latestScan?.id === dataset.id;
+                        const isInit = initScan?.id === dataset.id && datasets.length > 1;
+
                         return (
                             <div
                                 key={dataset.id}
                                 onClick={() => onSelectDataset(dataset)}
                                 className="group bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/5 transition-all flex items-center gap-3 cursor-pointer relative"
                             >
+                                {/* Badges */}
+                                {isLatest && (
+                                    <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm z-20">
+                                        LATEST
+                                    </span>
+                                )}
+                                {isInit && (
+                                    <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-slate-500 text-white text-[10px] font-bold rounded-full shadow-sm z-20">
+                                        INIT
+                                    </span>
+                                )}
+
                                 {/* Delete Button */}
                                 <button
                                     onClick={(e) => handleDeleteClick(e, dataset.id)}
@@ -127,14 +175,13 @@ const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset })
                                     <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
                                         {new Date(dataset.scan_date || dataset.created_at).toLocaleDateString()}
                                     </p>
-
                                 </div>
                             </div>
                         );
                     })
                 )}
 
-                {/* New Scan Card (Always visible or visible after loading? User might want to create even if loading? Usually better to wait or show it always. I'll show it always at the end of the grid, or only after loading. Let's show it after loading to avoid jumping layout) */}
+                {/* New Scan Card (Always visible or visible after loading?) */}
                 {!isLoading && (
                     <button
                         onClick={() => setIsUploadModalOpen(true)}
