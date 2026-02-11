@@ -7,10 +7,10 @@ import type { Project, Dataset } from '../types/database';
 interface DashboardProps {
     activeProject: Project;
     onSelectDataset: (dataset: Dataset) => void;
-    onCompareDatasets: (init: Dataset, latest: Dataset) => void;
+    onLaunchDKP: (init: Dataset, latest: Dataset) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset, onCompareDatasets }) => {
+const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset, onLaunchDKP }) => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [datasets, setDatasets] = useState<Dataset[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -87,36 +87,37 @@ const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset, o
 
     // Identify Init and Latest Scans
     // datasets are already sorted by created_at desc (newest first)
-    const latestScan = datasets.length > 0 ? datasets[0] : null;
-    const initScan = datasets.length > 0 ? datasets[datasets.length - 1] : null;
-    const canCompare = datasets.length >= 2 && latestScan && initScan && latestScan.id !== initScan.id;
+
 
     return (
         <>
-            {/* Features Section */}
-            <div className="mb-8">
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Features</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+
+
+
+            {/* DKP Tracker Card */}
+            {datasets.length >= 2 && (
+                <>
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Features</h2>
                     <button
-                        className={`bg-white p-4 rounded-xl border border-slate-200 transition-all flex items-center gap-4 text-left group ${canCompare ? 'hover:border-indigo-400 hover:shadow-md cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
                         onClick={() => {
-                            if (canCompare) {
-                                onCompareDatasets(initScan!, latestScan!);
-                            } else {
-                                toast.error('Need at least 2 scans to track progress');
-                            }
+                            const latest = datasets[0];
+                            const init = datasets[datasets.length - 1];
+                            onLaunchDKP(init, latest);
                         }}
+                        className="group bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-xl border-2 border-indigo-400/50 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/30 transition-all flex items-center gap-4 text-left mb-6 w-full"
                     >
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-lg transition-transform ${canCompare ? 'bg-indigo-500 text-white shadow-indigo-500/30 group-hover:scale-110' : 'bg-slate-200 text-slate-400'}`}>
-                            <span className="material-symbols-outlined text-2xl">trophy</span>
+                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0">
+                            <span className="material-symbols-outlined text-2xl font-bold">monitoring</span>
                         </div>
-                        <div>
-                            <h3 className="text-base font-bold text-slate-800">DKP Tracker</h3>
-                            <p className="text-xs text-slate-500 font-medium mt-0.5">Death & Kill Points Tracker</p>
+                        <div className="flex-1">
+                            <h3 className="text-base font-bold text-white mb-1">DKP Tracker</h3>
+                            <p className="text-xs text-indigo-100">Compare first and latest scans to track governor progress</p>
                         </div>
+                        <span className="material-symbols-outlined text-white text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
                     </button>
-                </div>
-            </div>
+                </>
+            )}
 
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Scans</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -133,52 +134,35 @@ const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset, o
                     ))
                 ) : (
                     // Dataset Cards
-                    datasets.map((dataset) => {
-                        const isLatest = latestScan?.id === dataset.id;
-                        const isInit = initScan?.id === dataset.id && datasets.length > 1;
-
-                        return (
-                            <div
-                                key={dataset.id}
-                                onClick={() => onSelectDataset(dataset)}
-                                className="group bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/5 transition-all flex items-center gap-3 cursor-pointer relative"
+                    datasets.map((dataset) => (
+                        <div
+                            key={dataset.id}
+                            onClick={() => onSelectDataset(dataset)}
+                            className="group bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md hover:shadow-blue-500/5 transition-all flex items-center gap-3 cursor-pointer relative"
+                        >
+                            {/* Delete Button */}
+                            <button
+                                onClick={(e) => handleDeleteClick(e, dataset.id)}
+                                className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10"
+                                title="Delete Scan"
                             >
-                                {/* Badges */}
-                                {isLatest && (
-                                    <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-sm z-20">
-                                        LATEST
-                                    </span>
-                                )}
-                                {isInit && (
-                                    <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-slate-500 text-white text-[10px] font-bold rounded-full shadow-sm z-20">
-                                        INIT
-                                    </span>
-                                )}
+                                <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
 
-                                {/* Delete Button */}
-                                <button
-                                    onClick={(e) => handleDeleteClick(e, dataset.id)}
-                                    className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-10"
-                                    title="Delete Scan"
-                                >
-                                    <span className="material-symbols-outlined text-base">delete</span>
-                                </button>
-
-                                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-md flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0 self-start mt-1">
-                                    <span className="material-symbols-outlined text-xl">table_chart</span>
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                    <h3 className="text-sm font-bold text-slate-800 truncate" title={dataset.name || dataset.file_name}>
-                                        {dataset.name || dataset.file_name}
-                                    </h3>
-                                    <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
-                                        {new Date(dataset.scan_date || dataset.created_at).toLocaleDateString()}
-                                    </p>
-                                </div>
+                            <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-md flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform shrink-0 self-start mt-1">
+                                <span className="material-symbols-outlined text-xl">table_chart</span>
                             </div>
-                        );
-                    })
+
+                            <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-bold text-slate-800 truncate" title={dataset.name || dataset.file_name}>
+                                    {dataset.name || dataset.file_name}
+                                </h3>
+                                <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
+                                    {new Date(dataset.scan_date || dataset.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                    ))
                 )}
 
                 {/* New Scan Card (Always visible or visible after loading?) */}
@@ -195,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeProject, onSelectDataset, o
                         </div>
                     </button>
                 )}
-            </div>
+            </div >
 
             <UploadModal
                 isOpen={isUploadModalOpen}

@@ -4,14 +4,15 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import DatasetViewer from './components/DatasetViewer';
-import ComparisonViewer from './components/ComparisonViewer';
+import DKPViewer from './components/DKPViewer';
+// ComparisonViewer removed
 import { supabase } from './lib/supabase';
 import type { Project, Dataset } from './types/database';
 
 const App: React.FC = () => {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [activeDataset, setActiveDataset] = useState<Dataset | null>(null);
-  const [comparisonData, setComparisonData] = useState<{ init: Dataset; latest: Dataset } | null>(null);
+  const [dkpData, setDkpData] = useState<{ init: Dataset; latest: Dataset } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -98,7 +99,7 @@ const App: React.FC = () => {
         setActiveProject={(project) => {
           setActiveProject(project);
           setActiveDataset(null);
-          setComparisonData(null);
+          setDkpData(null);
         }}
         projects={projects}
         onCreateProject={handleCreateProject}
@@ -107,23 +108,23 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col min-w-0">
         <Header activeProject={activeProject} activeDataset={activeDataset} />
         <div className="flex-1 p-10 max-w-[1600px] h-[calc(100vh-80px)]">
-          {comparisonData ? (
-            <ComparisonViewer
-              initDataset={comparisonData.init}
-              latestDataset={comparisonData.latest}
-              onBack={() => setComparisonData(null)}
-            />
-          ) : activeDataset ? (
+          {activeDataset ? (
             <DatasetViewer
               dataset={activeDataset}
               onBack={() => setActiveDataset(null)}
+            />
+          ) : dkpData ? (
+            <DKPViewer
+              initDataset={dkpData.init}
+              latestDataset={dkpData.latest}
+              onBack={() => setDkpData(null)}
             />
           ) : activeProject ? (
             <Dashboard
               key={activeProject.id}
               activeProject={activeProject}
               onSelectDataset={setActiveDataset}
-              onCompareDatasets={(init, latest) => setComparisonData({ init, latest })}
+              onLaunchDKP={(init, latest) => setDkpData({ init, latest })}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-slate-400">

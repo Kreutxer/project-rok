@@ -18,7 +18,18 @@ const DatasetViewer: React.FC<DatasetViewerProps> = ({ dataset, onBack }) => {
     const data = dataset.json_data || [];
     const headers = (dataset.column_headers || []).filter(h => {
         const lower = h.toLowerCase();
-        return lower !== 'id' && lower !== 'governor_name';
+        // Specific exclusions
+        const excluded = [
+            'id',
+            'governor_name',
+            'rss assistance',
+            'rss gathered',
+            'alliance helps',
+            'rss_assistance',
+            'rss_gathered',
+            'alliance_helps'
+        ];
+        return !excluded.includes(lower);
     });
 
     // Helper to request a sort
@@ -28,6 +39,16 @@ const DatasetViewer: React.FC<DatasetViewerProps> = ({ dataset, onBack }) => {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
+    };
+
+    // Helper to clean and parse numbers
+    const parseNumber = (v: any) => {
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') {
+            const num = parseFloat(v.replace(/,/g, ''));
+            return isNaN(num) ? 0 : num;
+        }
+        return 0;
     };
 
     // Filter and Sort Data
@@ -52,22 +73,20 @@ const DatasetViewer: React.FC<DatasetViewerProps> = ({ dataset, onBack }) => {
                 const valA = a[key];
                 const valB = b[key];
 
-                // Helper to clean and parse numbers (handles "1,234,567" or "1234")
-                const parseVal = (v: any) => {
-                    if (typeof v === 'string') {
-                        // Remove commas and try processing as number
-                        const num = parseFloat(v.replace(/,/g, ''));
-                        return isNaN(num) ? v.toLowerCase() : num;
-                    }
-                    return v;
-                };
+                // Re-implementation of sort logic to be robust:
+                const isNumA = !isNaN(parseFloat(String(valA).replace(/,/g, '')));
+                const isNumB = !isNaN(parseFloat(String(valB).replace(/,/g, '')));
 
-                const parsedA = parseVal(valA);
-                const parsedB = parseVal(valB);
+                if (isNumA && isNumB) {
+                    const nA = parseNumber(valA);
+                    const nB = parseNumber(valB);
+                    return sortConfig.direction === 'asc' ? nA - nB : nB - nA;
+                }
 
-                if (parsedA < parsedB) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (parsedA > parsedB) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
+                // String sort fallback
+                return sortConfig.direction === 'asc'
+                    ? String(valA).localeCompare(String(valB))
+                    : String(valB).localeCompare(String(valA));
             });
         }
 
@@ -80,50 +99,40 @@ const DatasetViewer: React.FC<DatasetViewerProps> = ({ dataset, onBack }) => {
     const currentData = processedData.slice(startIndex, startIndex + itemsPerPage);
 
     const getHeaderLabel = (header: string) => {
-        const labels: Record<string, string> = {
-            'governor_id': 'UID',
-            'govExact_name': 'NICKNAME',
-            'power': 'POWER',
-            'total_kp': 'TOTAL KP',
-            't4_kills': 'T4 KILLS',
-            't5_kills': 'T5 KILLS',
-            'dead_troops': 'DEAD',
-            'rss_assistance': 'RSS ASSISTED',
-            'alliance_tag': 'ALLIANCE'
-        };
-        return labels[header] || header;
+        // Labeling removed for now
+        return header;
     };
 
     const isNumericColumn = (header: string) => {
-        const numericCols = ['power', 'total_kp', 't4_kills', 't5_kills', 'dead_troops', 'rss_assistance', 't4-kills', 't5-kills'];
+        const numericCols = [
+            'power',
+            'total_kp',
+            't4_kills',
+            't5_kills',
+            'dead_troops',
+            'rss_assistance',
+            't4-kills',
+            't5-kills',
+            'total kill points',
+            'dead troops'
+        ];
         return numericCols.includes(header.toLowerCase());
     };
 
     const formatCellValue = (header: string, value: any) => {
         if (!value) return '-';
         if (isNumericColumn(header)) {
-            // Try to parse as number and format with commas
-            const num = parseFloat(String(value).replace(/,/g, ''));
-            return isNaN(num) ? value : num.toLocaleString();
+            const num = parseNumber(value);
+            return num.toLocaleString();
         }
         return value;
     };
 
-    // Calculate Stats (only for filtered data? or global? Usually global stats are preferred in overview, but user might want filtered stats. Keeping global for now as per previous implementation)
     const stats = useMemo(() => {
         return data.reduce((acc, row) => {
-            const parse = (val: any) => {
-                if (typeof val === 'number') return val;
-                if (typeof val === 'string') {
-                    const clean = val.replace(/,/g, '');
-                    return parseFloat(clean) || 0;
-                }
-                return 0;
-            };
-
-            acc.power += parse(row['power'] || row['Power'] || 0);
-            acc.kp += parse(row['total_kp'] || row['Total KP'] || 0);
-            acc.dead += parse(row['dead_troops'] || row['Dead'] || 0);
+            acc.power += parseNumber(row['power'] || row['Power']);
+            acc.kp += parseNumber(row['total_kp'] || row['Total KP'] || row['Total Kill Points']);
+            acc.dead += parseNumber(row['dead_troops'] || row['Dead'] || row['Dead Troops']);
             return acc;
         }, { power: 0, kp: 0, dead: 0 });
     }, [data]);
