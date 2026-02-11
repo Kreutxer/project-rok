@@ -127,7 +127,15 @@ const DKPViewer: React.FC<DKPViewerProps> = ({ initDataset, latestDataset, onBac
 
     // Sorting and Ranking
     const processedData = useMemo(() => {
-        let result = [...data];
+        // Calculate absolute ranks FIRST from the full dataset
+        const sortedByKp = [...data].sort((a, b) => b.kp_gained - a.kp_gained);
+        const dataWithRanks = data.map(row => {
+            const rank = sortedByKp.findIndex(r => r.id === row.id) + 1;
+            return { ...row, rank };
+        });
+
+        // Then apply filtering
+        let result = [...dataWithRanks];
 
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
@@ -137,6 +145,7 @@ const DKPViewer: React.FC<DKPViewerProps> = ({ initDataset, latestDataset, onBac
             );
         }
 
+        // Then apply sorting
         if (sortConfig.key) {
             result.sort((a: any, b: any) => {
                 const valA = a[sortConfig.key!];
@@ -148,14 +157,7 @@ const DKPViewer: React.FC<DKPViewerProps> = ({ initDataset, latestDataset, onBac
             });
         }
 
-        // Add rank based on KP Gained (descending)
-        const sortedByKp = [...result].sort((a, b) => b.kp_gained - a.kp_gained);
-        const rankedResult = result.map(row => {
-            const rank = sortedByKp.findIndex(r => r.id === row.id) + 1;
-            return { ...row, rank };
-        });
-
-        return rankedResult;
+        return result;
     }, [data, searchTerm, sortConfig]);
 
     // Pagination
