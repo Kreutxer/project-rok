@@ -9,7 +9,7 @@ interface DKPViewerProps {
 
 const DKPViewer: React.FC<DKPViewerProps> = ({ initDataset, latestDataset, onBack }) => {
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const itemsPerPage = 10;
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({
         key: 'score',
