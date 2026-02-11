@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [dkpData, setDkpData] = useState<{ init: Dataset; latest: Dataset } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -92,22 +93,50 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen bg-slate-50">
       <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
-      <Sidebar
-        activeProject={activeProject}
-        setActiveProject={(project) => {
-          setActiveProject(project);
-          setActiveDataset(null);
-          setDkpData(null);
-        }}
-        projects={projects}
-        onCreateProject={handleCreateProject}
-        onDeleteProject={handleDeleteProject}
-      />
+
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+      >
+        <span className="material-symbols-outlined text-slate-700">
+          {isMobileMenuOpen ? 'close' : 'menu'}
+        </span>
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-40
+        transform transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <Sidebar
+          activeProject={activeProject}
+          setActiveProject={(project) => {
+            setActiveProject(project);
+            setActiveDataset(null);
+            setDkpData(null);
+            setIsMobileMenuOpen(false);
+          }}
+          projects={projects}
+          onCreateProject={handleCreateProject}
+          onDeleteProject={handleDeleteProject}
+        />
+      </div>
+
       <main className="flex-1 flex flex-col min-w-0">
         <Header activeProject={activeProject} activeDataset={activeDataset} />
-        <div className="flex-1 p-10 max-w-[1600px] h-[calc(100vh-80px)]">
+        <div className="flex-1 p-4 sm:p-6 lg:p-10 max-w-[1600px] h-[calc(100vh-80px)] overflow-auto">
           {activeDataset ? (
             <DatasetViewer
               dataset={activeDataset}

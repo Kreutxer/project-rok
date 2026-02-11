@@ -206,8 +206,8 @@ const DKPViewer: React.FC<DKPViewerProps> = ({ initDataset, latestDataset, onBac
             {/* Table Card */}
             <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-h-0">
                 {/* Toolbar */}
-                <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-between bg-white shrink-0 gap-4">
-                    <div className="relative max-w-sm w-full">
+                <div className="px-4 sm:px-6 py-3 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white shrink-0 gap-3 sm:gap-4">
+                    <div className="relative w-full sm:max-w-sm">
                         <input
                             type="text"
                             placeholder="Search by Name or ID..."
